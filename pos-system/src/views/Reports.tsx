@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Product, Transaction, Expense } from '../types'
 
 interface Props {
@@ -9,40 +9,86 @@ interface Props {
 
 const ph = (n: number) => '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0 })
 
-export default function Reports({ products, transactions, expenses }: Props) {
-  const [period, setPeriod] = useState('Today')
+function pastDateStr(daysAgo: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - daysAgo)
+  return d.toLocaleDateString()
+}
 
-  const totalRev = transactions.reduce((s, t) => s + t.total, 0)
-  const totalCOGS = transactions.reduce((s, t) => s + (t.cogs || 0), 0)
-  const totalExp = expenses.reduce((s, e) => s + e.amount, 0)
+function shortDay(dateStr: string): string {
+  const d = new Date(dateStr)
+  return isNaN(d.getTime()) ? '?' : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d.getDay()]
+}
+
+export default function Reports({ products, transactions, expenses }: Props) {
+  const [period, setPeriod] = useState<'Today' | 'Week' | 'Month'>('Week')
+
+  // ── Filtered transactions by period ──────────────────────────────────────
+  const filteredTxns = useMemo(() => {
+    const days = period === 'Today' ? 0 : period === 'Week' ? 6 : 29
+    const dateSet = new Set(Array.from({ length: days + 1 }, (_, i) => pastDateStr(i)))
+    return transactions.filter(t => dateSet.has(t.date))
+  }, [transactions, period])
+
+  // ── Filtered expenses by period ───────────────────────────────────────────
+  const filteredExp = useMemo(() => {
+    const cutoffDays = period === 'Today' ? 0 : period === 'Week' ? 6 : 29
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - cutoffDays)
+    cutoff.setHours(0, 0, 0, 0)
+    return expenses.filter(e => new Date(e.date) >= cutoff)
+  }, [expenses, period])
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const totalRev    = filteredTxns.reduce((s, t) => s + t.total, 0)
+  const totalCOGS   = filteredTxns.reduce((s, t) => s + (t.cogs || 0), 0)
+  const totalExp    = filteredExp.reduce((s, e) => s + e.amount, 0)
   const grossProfit = totalRev - totalCOGS
-  const netProfit = grossProfit - totalExp
+  const netProfit   = grossProfit - totalExp
   const grossMargin = totalRev > 0 ? Math.round(grossProfit / totalRev * 100) : 0
-  const netMargin = totalRev > 0 ? Math.round(netProfit / totalRev * 100) : 0
+  const netMargin   = totalRev > 0 ? Math.round(netProfit / totalRev * 100) : 0
 
   const plRows = [
-    { label: 'Gross Revenue', val: totalRev, color: 'var(--text)', indent: false, divider: false },
-    { label: 'Cost of Goods Sold', val: -totalCOGS, color: 'var(--red)', indent: true, divider: false },
-    { label: 'Gross Profit', val: grossProfit, color: 'var(--accent2)', indent: false, divider: true, bold: true },
-    { label: 'Operating Expenses', val: -totalExp, color: 'var(--amber)', indent: true, divider: false },
-    { label: 'Net Profit / Loss', val: netProfit, color: netProfit >= 0 ? 'var(--green)' : 'var(--red)', indent: false, divider: true, bold: true },
+    { label: 'Gross Revenue',      val: totalRev,    color: 'var(--text)',   indent: false, divider: false },
+    { label: 'Cost of Goods Sold', val: -totalCOGS,  color: 'var(--red)',   indent: true,  divider: false },
+    { label: 'Gross Profit',       val: grossProfit, color: 'var(--accent2)', indent: false, divider: true, bold: true },
+    { label: 'Operating Expenses', val: -totalExp,   color: 'var(--amber)', indent: true,  divider: false },
+    { label: 'Net Profit / Loss',  val: netProfit,   color: netProfit >= 0 ? 'var(--green)' : 'var(--red)', indent: false, divider: true, bold: true },
   ]
 
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'Today']
-  const simRev = [8450, 11200, 9300, 14600, 13100, 16800, totalRev]
-  const simCOGS = [5900, 7840, 6510, 10220, 9170, 11760, totalCOGS]
-  const simExp = [2400, 2400, 2400, 2400, 2400, 2400, totalExp]
-  const maxV = Math.max(...simRev, 1)
+  // ── Bar chart — last 7 days (always), all data-driven ────────────────────
+  const chartDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const dateStr = pastDateStr(6 - i) // oldest → newest
+      const dayTxns = transactions.filter(t => t.date === dateStr)
+      const cutoff  = new Date(dateStr); cutoff.setHours(0, 0, 0, 0)
+      const cutoffEnd = new Date(dateStr); cutoffEnd.setHours(23, 59, 59, 999)
+      const dayExp  = expenses.filter(e => {
+        const d = new Date(e.date)
+        return d >= cutoff && d <= cutoffEnd
+      })
+      return {
+        label:   shortDay(dateStr),
+        rev:     dayTxns.reduce((s, t) => s + t.total, 0),
+        cogs:    dayTxns.reduce((s, t) => s + (t.cogs || 0), 0),
+        exp:     dayExp.reduce((s, e) => s + e.amount, 0),
+        isToday: i === 6,
+      }
+    })
+  }, [transactions, expenses])
 
+  const maxV = Math.max(...chartDays.map(d => d.rev), 1)
+
+  // ── Payment methods (real data only) ─────────────────────────────────────
   const pmethods: Record<string, number> = {}
-  transactions.forEach(t => { pmethods[t.payment] = (pmethods[t.payment] || 0) + t.total })
-  const simMethods = Object.keys(pmethods).length ? pmethods : { cash: 5200, card: 2800, gcash: 3100, maya: 1400 }
-  const sTotal = Object.values(simMethods).reduce((a, b) => a + b, 0)
+  filteredTxns.forEach(t => { pmethods[t.payment] = (pmethods[t.payment] || 0) + t.total })
+  const sTotal    = Object.values(pmethods).reduce((a, b) => a + b, 0)
   const payColors: Record<string, string> = { cash: 'var(--green)', card: 'var(--blue)', gcash: 'var(--accent2)', maya: 'var(--amber)' }
   const payLabels: Record<string, string> = { cash: 'Cash', card: 'Card', gcash: 'GCash', maya: 'Maya' }
 
+  // ── Inventory health ──────────────────────────────────────────────────────
   const totalP = products.length
-  const invOk = products.filter(p => p.stock > p.lowStock).length
+  const invOk  = products.filter(p => p.stock > p.lowStock).length
   const invLow = products.filter(p => p.stock > 0 && p.stock <= p.lowStock).length
   const invOut = products.filter(p => p.stock <= 0).length
 
@@ -51,7 +97,7 @@ export default function Reports({ products, transactions, expenses }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
         <div style={{ fontSize: 13, color: 'var(--text2)' }}>Analytics & profit overview for your store</div>
         <div className="report-period">
-          {['Today', 'Week', 'Month'].map(p => (
+          {(['Today', 'Week', 'Month'] as const).map(p => (
             <button key={p} className={`period-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>{p}</button>
           ))}
         </div>
@@ -62,7 +108,7 @@ export default function Reports({ products, transactions, expenses }: Props) {
         <div className="stat-card">
           <div className="stat-label">Gross Revenue <i className="ti ti-cash" style={{ color: 'var(--green)' }} /></div>
           <div className="stat-value" style={{ color: 'var(--green)' }}>{ph(totalRev)}</div>
-          <div className="stat-sub"><span>{transactions.length}</span> transactions</div>
+          <div className="stat-sub"><span>{filteredTxns.length}</span> transactions</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Cost of Goods Sold <i className="ti ti-package" style={{ color: 'var(--blue)' }} /></div>
@@ -72,7 +118,7 @@ export default function Reports({ products, transactions, expenses }: Props) {
         <div className="stat-card">
           <div className="stat-label">Operating Expenses <i className="ti ti-file-invoice" style={{ color: 'var(--amber)' }} /></div>
           <div className="stat-value" style={{ color: 'var(--amber)' }}>{ph(totalExp)}</div>
-          <div className="stat-sub" style={{ color: 'var(--text3)' }}>{expenses.length} entries</div>
+          <div className="stat-sub" style={{ color: 'var(--text3)' }}>{filteredExp.length} entries</div>
         </div>
         <div className="stat-card" style={{ borderColor: 'rgba(34,201,123,0.25)', background: 'rgba(34,201,123,0.05)' }}>
           <div className="stat-label">Net Profit <i className="ti ti-trending-up" style={{ color: 'var(--green)' }} /></div>
@@ -98,18 +144,21 @@ export default function Reports({ products, transactions, expenses }: Props) {
           ))}
         </div>
 
-        {/* Revenue vs Expenses chart */}
+        {/* Revenue vs Expenses — last 7 days, real data */}
         <div className="card">
-          <div className="card-header"><h2><i className="ti ti-chart-bar" style={{ marginRight: 6, color: 'var(--green)' }} />Revenue vs Expenses</h2></div>
+          <div className="card-header">
+            <h2><i className="ti ti-chart-bar" style={{ marginRight: 6, color: 'var(--green)' }} />Revenue vs Expenses</h2>
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>Last 7 days</span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-            {days.map((d, i) => (
+            {chartDays.map((d, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
                 <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', justifyContent: 'center' }}>
-                  <div style={{ flex: 1, background: i === 6 ? 'var(--accent)' : 'rgba(124,110,245,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(simRev[i] / maxV * 90)) }} />
-                  <div style={{ flex: 1, background: i === 6 ? 'var(--red)' : 'rgba(240,82,82,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(simCOGS[i] / maxV * 90)) }} />
-                  <div style={{ flex: 1, background: i === 6 ? 'var(--amber)' : 'rgba(245,166,35,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(simExp[i] / maxV * 90)) }} />
+                  <div style={{ flex: 1, background: d.isToday ? 'var(--accent)' : 'rgba(124,110,245,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(d.rev / maxV * 90)) }} />
+                  <div style={{ flex: 1, background: d.isToday ? 'var(--red)' : 'rgba(240,82,82,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(d.cogs / maxV * 90)) }} />
+                  <div style={{ flex: 1, background: d.isToday ? 'var(--amber)' : 'rgba(245,166,35,0.5)', borderRadius: '2px 2px 0 0', height: Math.max(3, Math.round(d.exp / maxV * 90)) }} />
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>{d}</div>
+                <div style={{ fontSize: 10, color: d.isToday ? 'var(--accent2)' : 'var(--text3)', fontFamily: 'var(--mono)', fontWeight: d.isToday ? 600 : undefined }}>{d.label}</div>
               </div>
             ))}
           </div>
@@ -125,22 +174,26 @@ export default function Reports({ products, transactions, expenses }: Props) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-        {/* Payment methods */}
+        {/* Payment methods — real data only */}
         <div className="card">
           <div className="card-header"><h2>Payment Methods</h2></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {Object.entries(simMethods).map(([k, v]) => (
-              <div key={k}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <span style={{ fontSize: 13 }}>{payLabels[k] || k}</span>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text2)' }}>{Math.round(v / sTotal * 100)}%  ₱{v.toLocaleString()}</span>
+          {Object.keys(pmethods).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No transactions in this period.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              {Object.entries(pmethods).map(([k, v]) => (
+                <div key={k}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 13 }}>{payLabels[k] || k}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text2)' }}>{Math.round(v / sTotal * 100)}%  ₱{v.toLocaleString()}</span>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--bg4)', borderRadius: 3 }}>
+                    <div style={{ height: '100%', width: `${Math.round(v / sTotal * 100)}%`, background: payColors[k] || 'var(--accent)', borderRadius: 3 }} />
+                  </div>
                 </div>
-                <div style={{ height: 6, background: 'var(--bg4)', borderRadius: 3 }}>
-                  <div style={{ height: '100%', width: `${Math.round(v / sTotal * 100)}%`, background: payColors[k] || 'var(--accent)', borderRadius: 3 }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Inventory health */}
@@ -162,20 +215,21 @@ export default function Reports({ products, transactions, expenses }: Props) {
         </div>
       </div>
 
-      {/* All transactions */}
+      {/* Transactions table — filtered by period */}
       <div className="card">
-        <div className="card-header"><h2>All Transactions</h2></div>
-        {!transactions.length ? (
-          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No transactions recorded.</div>
+        <div className="card-header"><h2>Transactions <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 400 }}>— {period}</span></h2></div>
+        {!filteredTxns.length ? (
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No transactions in this period.</div>
         ) : (
           <table style={{ width: '100%' }}>
             <thead>
-              <tr><th>ID</th><th>Time</th><th>Items</th><th>COGS</th><th>Payment</th><th>Revenue</th><th>Gross Profit</th></tr>
+              <tr><th>ID</th><th>Date</th><th>Time</th><th>Items</th><th>COGS</th><th>Payment</th><th>Revenue</th><th>Gross Profit</th></tr>
             </thead>
             <tbody>
-              {[...transactions].reverse().map(t => (
+              {[...filteredTxns].reverse().map(t => (
                 <tr key={t.id}>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--accent2)' }}>{t.id}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text2)' }}>{t.date}</td>
                   <td style={{ fontSize: 12, color: 'var(--text2)' }}>{t.time}</td>
                   <td style={{ fontSize: 12 }}>{t.items.map(i => `${i.name} x${i.qty}`).join(', ')}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--red)' }}>₱{(t.cogs || 0).toFixed(2)}</td>
