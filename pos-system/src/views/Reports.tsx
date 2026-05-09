@@ -77,7 +77,7 @@ export default function Reports({ products, transactions, expenses }: Props) {
     })
   }, [transactions, expenses])
 
-  const maxV = Math.max(...chartDays.map(d => d.rev), 1)
+  const maxV = Math.max(...chartDays.map(d => Math.max(d.rev, d.cogs, d.exp)), 1)
 
   // ── Payment methods (real data only) ─────────────────────────────────────
   const pmethods: Record<string, number> = {}
@@ -150,7 +150,7 @@ export default function Reports({ products, transactions, expenses }: Props) {
             <h2><i className="ti ti-chart-bar" style={{ marginRight: 6, color: 'var(--green)' }} />Revenue vs Expenses</h2>
             <span style={{ fontSize: 11, color: 'var(--text3)' }}>Last 7 days</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120, overflow: 'hidden' }}>
             {chartDays.map((d, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
                 <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', justifyContent: 'center' }}>
