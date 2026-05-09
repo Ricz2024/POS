@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Product, Transaction, Expense } from '../types'
 
 interface Props {
@@ -8,36 +9,58 @@ interface Props {
 
 const ph = (n: number) => '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0 })
 
+function pastDateStr(daysAgo: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - daysAgo)
+  return d.toLocaleDateString()
+}
+
+function shortDay(dateStr: string): string {
+  const d = new Date(dateStr)
+  return isNaN(d.getTime()) ? '?' : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d.getDay()]
+}
+
 export default function Dashboard({ products, transactions, expenses }: Props) {
-  const todayRev = transactions.reduce((s, t) => s + t.total, 0)
-  const todayCOGS = transactions.reduce((s, t) => s + (t.cogs || 0), 0)
-  const todayItems = transactions.reduce((s, t) => s + t.items.reduce((a, i) => a + i.qty, 0), 0)
-  const totalExp = expenses.reduce((s, e) => s + e.amount, 0)
-  const netProfit = todayRev - todayCOGS - totalExp
-  const margin = todayRev > 0 ? Math.round(netProfit / todayRev * 100) : 0
-  const lowCount = products.filter(p => p.stock <= p.lowStock).length
-  const invVal = products.reduce((s, p) => s + p.stock * p.cost, 0)
-  const avgVal = transactions.length ? Math.round(todayRev / transactions.length) : 0
+  const todayStr = new Date().toLocaleDateString()
 
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const simData = [8450, 11200, 9300, 14600, 13100, 16800, todayRev]
-  const maxBar = Math.max(...simData, 1)
-  const weekTotal = simData.reduce((a, b) => a + b, 0)
+  // ── Today-only KPIs ───────────────────────────────────────────────────────
+  const todayTxns = transactions.filter(t => t.date === todayStr)
+  const todayRev   = todayTxns.reduce((s, t) => s + t.total, 0)
+  const todayCOGS  = todayTxns.reduce((s, t) => s + (t.cogs || 0), 0)
+  const todayItems = todayTxns.reduce((s, t) => s + t.items.reduce((a, i) => a + i.qty, 0), 0)
+  const totalExp   = expenses.reduce((s, e) => s + e.amount, 0)
+  const netProfit  = todayRev - todayCOGS - totalExp
+  const margin     = todayRev > 0 ? Math.round(netProfit / todayRev * 100) : 0
+  const lowCount   = products.filter(p => p.stock <= p.lowStock).length
+  const invVal     = products.reduce((s, p) => s + p.stock * p.cost, 0)
+  const avgVal     = todayTxns.length ? Math.round(todayRev / todayTxns.length) : 0
 
-  const prodSales: Record<number, { name: string; qty: number; rev: number }> = {}
-  transactions.forEach(t => t.items.forEach(i => {
-    if (!prodSales[i.id]) prodSales[i.id] = { name: i.name, qty: 0, rev: 0 }
-    prodSales[i.id].qty += i.qty
-    prodSales[i.id].rev += i.price * i.qty
-  }))
-  const simTop = Object.values(prodSales).sort((a, b) => b.rev - a.rev).slice(0, 5)
-  const topProducts = simTop.length ? simTop : [
-    { name: 'Coca-Cola 1.5L', qty: 24, rev: 1800 },
-    { name: 'Lucky Me Pancit', qty: 80, rev: 1200 },
-    { name: 'Sky Flakes', qty: 45, rev: 1260 },
-    { name: 'Del Monte Sauce', qty: 30, rev: 1350 },
-    { name: 'Sprite 1.5L', qty: 20, rev: 1440 },
-  ]
+  // ── Last 7 days real data for bar chart ───────────────────────────────────
+  const chartDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const dateStr = pastDateStr(6 - i)
+      const dayTxns = transactions.filter(t => t.date === dateStr)
+      return {
+        label:   shortDay(dateStr),
+        rev:     dayTxns.reduce((s, t) => s + t.total, 0),
+        isToday: i === 6,
+      }
+    })
+  }, [transactions])
+
+  const maxBar    = Math.max(...chartDays.map(d => d.rev), 1)
+  const weekTotal = chartDays.reduce((a, d) => a + d.rev, 0)
+
+  // ── Top products from real transaction data ───────────────────────────────
+  const topProducts = useMemo(() => {
+    const acc: Record<number, { name: string; qty: number; rev: number }> = {}
+    transactions.forEach(t => t.items.forEach(i => {
+      if (!acc[i.id]) acc[i.id] = { name: i.name, qty: 0, rev: 0 }
+      acc[i.id].qty += i.qty
+      acc[i.id].rev += i.price * i.qty
+    }))
+    return Object.values(acc).sort((a, b) => b.rev - a.rev).slice(0, 5)
+  }, [transactions])
 
   return (
     <>
@@ -45,7 +68,7 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
         <div className="stat-card">
           <div className="stat-label">Today's Revenue <i className="ti ti-cash" style={{ color: 'var(--green)' }} /></div>
           <div className="stat-value">{ph(todayRev)}</div>
-          <div className="stat-sub"><span className="up">{transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</span></div>
+          <div className="stat-sub"><span className="up">{todayTxns.length} transaction{todayTxns.length !== 1 ? 's' : ''}</span></div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Cost of Goods Sold <i className="ti ti-receipt" style={{ color: 'var(--red)' }} /></div>
@@ -78,7 +101,7 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
         <div className="stat-card">
           <div className="stat-label">Avg Sale Value <i className="ti ti-chart-line" style={{ color: 'var(--accent2)' }} /></div>
           <div className="stat-value">₱{avgVal}</div>
-          <div className="stat-sub" style={{ color: 'var(--text3)' }}>per transaction</div>
+          <div className="stat-sub" style={{ color: 'var(--text3)' }}>per transaction today</div>
         </div>
       </div>
 
@@ -86,35 +109,40 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
         <div className="card">
           <div className="card-header">
             <h2><i className="ti ti-chart-bar" style={{ marginRight: 6, color: 'var(--accent2)' }} />Sales This Week</h2>
-            <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>₱{weekTotal.toLocaleString('en-PH')} total</span>
+            <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'var(--mono)' }}>{ph(weekTotal)} total</span>
           </div>
           <div className="chart-bars">
-            {days.map((d, i) => (
-              <div key={d} className="bar-wrap">
-                <div className="bar-val">₱{(simData[i] / 1000).toFixed(1)}k</div>
+            {chartDays.map((d, i) => (
+              <div key={i} className="bar-wrap">
+                <div className="bar-val">{d.rev > 0 ? `₱${(d.rev / 1000).toFixed(1)}k` : '—'}</div>
                 <div
                   className="bar"
                   style={{
-                    height: Math.max(8, Math.round(simData[i] / maxBar * 110)),
-                    background: i === 6 ? 'var(--accent)' : 'rgba(124,110,245,0.4)',
+                    height: Math.max(4, Math.round(d.rev / maxBar * 110)),
+                    background: d.isToday ? 'var(--accent)' : 'rgba(124,110,245,0.4)',
                   }}
                 />
-                <div className="bar-label">{d}</div>
+                <div className="bar-label" style={{ color: d.isToday ? 'var(--accent2)' : undefined }}>{d.label}</div>
               </div>
             ))}
           </div>
         </div>
+
         <div className="card">
           <div className="card-header">
             <h2><i className="ti ti-trending-up" style={{ marginRight: 6, color: 'var(--green)' }} />Top Products</h2>
           </div>
-          {topProducts.map((p, i) => (
-            <div key={i} className="top-item">
-              <div className="top-rank">{i + 1}</div>
-              <div className="top-info"><p>{p.name}</p><span>{p.qty} units sold</span></div>
-              <div className="top-sales">₱{p.rev.toLocaleString()}</div>
-            </div>
-          ))}
+          {topProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No sales recorded yet.</div>
+          ) : (
+            topProducts.map((p, i) => (
+              <div key={i} className="top-item">
+                <div className="top-rank">{i + 1}</div>
+                <div className="top-info"><p>{p.name}</p><span>{p.qty} units sold</span></div>
+                <div className="top-sales">₱{p.rev.toLocaleString()}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -123,7 +151,7 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
           <h2><i className="ti ti-clock" style={{ marginRight: 6, color: 'var(--blue)' }} />Recent Transactions</h2>
         </div>
         {!transactions.length ? (
-          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No transactions yet today.</div>
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text3)', fontSize: 13 }}>No transactions yet.</div>
         ) : (
           [...transactions].reverse().slice(0, 6).map(t => (
             <div key={t.id} className="txn-item">
