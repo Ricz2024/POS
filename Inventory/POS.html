@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetailOS — POS & Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --bg2: #131316;
+    --bg3: #1a1a1f;
+    --bg4: #222228;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f2;
+    --text2: #9999aa;
+    --text3: #555566;
+    --accent: #7c6ef5;
+    --accent2: #9d91f7;
+    --green: #22c97b;
+    --red: #f05252;
+    --amber: #f5a623;
+    --blue: #3b9ef5;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; min-width: 220px; background: var(--bg2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 0;
+  }
+  .logo {
+    padding: 20px 18px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff;
+  }
+  .logo-text { font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent2); }
+  .nav { padding: 12px 10px; flex: 1; }
+  .nav-label { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--text2); font-size: 13.5px; font-weight: 400;
+    transition: all 0.15s; margin-bottom: 1px; border: 1px solid transparent;
+  }
+  .nav-item i { font-size: 17px; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(124,110,245,0.15); color: var(--accent2); border-color: rgba(124,110,245,0.2); }
+  .sidebar-footer {
+    padding: 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),#c084fc);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff;
+  }
+  .avatar-info p { font-size: 13px; font-weight: 500; }
+  .avatar-info span { font-size: 11px; color: var(--text2); }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 22px;
+  }
+  .topbar h1 { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.5px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text); font-size: 13px; cursor: pointer; font-family: var(--sans); transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg4); border-color: rgba(255,255,255,0.18); }
+  .btn-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-accent:hover { background: #6b5de0; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-green { background: rgba(34,201,123,0.15); border-color: rgba(34,201,123,0.3); color: var(--green); }
+  .btn-green:hover { background: rgba(34,201,123,0.25); }
+  .btn-red { background: rgba(240,82,82,0.15); border-color: rgba(240,82,82,0.3); color: var(--red); }
+  .content { flex: 1; overflow-y: auto; padding: 22px; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* DASHBOARD */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .stat-label i { font-size: 16px; }
+  .stat-value { font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .stat-sub .up { color: var(--green); }
+  .stat-sub .dn { color: var(--red); }
+  .dash-grid { display: grid; grid-template-columns: 1fr 340px; gap: 14px; }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px;
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-header h2 { font-family: var(--display); font-weight: 700; font-size: 15px; }
+
+  /* CHART */
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; opacity: 0.8; transition: opacity 0.15s; cursor: pointer; }
+  .bar:hover { opacity: 1; }
+  .bar-label { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .bar-val { font-size: 10px; color: var(--text2); font-family: var(--mono); }
+
+  /* TOP PRODUCTS */
+  .top-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .top-item:last-child { border-bottom: none; }
+  .top-rank { font-family: var(--mono); font-size: 12px; color: var(--text3); width: 18px; }
+  .top-info { flex: 1; }
+  .top-info p { font-size: 13px; font-weight: 500; }
+  .top-info span { font-size: 11px; color: var(--text2); }
+  .top-sales { font-family: var(--mono); font-size: 13px; color: var(--green); }
+
+  /* RECENT TXN */
+  .txn-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .txn-item:last-child { border-bottom: none; }
+  .txn-id { font-family: var(--mono); font-size: 11px; color: var(--accent2); }
+  .txn-time { font-size: 11px; color: var(--text3); }
+  .txn-amount { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .txn-method { font-size: 11px; color: var(--text2); }
+
+  /* POS */
+  .pos-layout { display: grid; grid-template-columns: 1fr 360px; gap: 16px; height: calc(100vh - 120px); }
+  .products-panel { display: flex; flex-direction: column; gap: 14px; }
+  .search-bar {
+    display: flex; align-items: center; gap: 10px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 0 14px;
+  }
+  .search-bar i { color: var(--text3); font-size: 16px; }
+  .search-bar input {
+    flex: 1; background: none; border: none; outline: none; color: var(--text);
+    font-size: 14px; padding: 11px 0; font-family: var(--sans);
+  }
+  .search-bar input::placeholder { color: var(--text3); }
+  .cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cat-tab {
+    padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+    font-size: 12px; cursor: pointer; color: var(--text2); background: var(--bg2); transition: all 0.15s;
+  }
+  .cat-tab:hover { border-color: var(--border2); color: var(--text); }
+  .cat-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; }
+  .product-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; cursor: pointer; transition: all 0.15s; position: relative;
+  }
+  .product-card:hover { border-color: var(--accent); background: var(--bg3); transform: translateY(-1px); }
+  .product-card.out-of-stock { opacity: 0.4; pointer-events: none; }
+  .prod-icon { font-size: 26px; margin-bottom: 10px; }
+  .prod-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3; }
+  .prod-price { font-family: var(--mono); font-size: 14px; color: var(--accent2); font-weight: 500; }
+  .prod-stock { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .prod-badge {
+    position: absolute; top: 8px; right: 8px; font-size: 10px; padding: 2px 6px;
+    border-radius: 4px; background: rgba(240,82,82,0.2); color: var(--red); font-weight: 500;
+  }
+
+  /* CART */
+  .cart-panel {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    display: flex; flex-direction: column; height: 100%;
+  }
+  .cart-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .cart-header h2 { font-family: var(--display); font-weight: 700; font-size: 16px; }
+  .cart-items { flex: 1; overflow-y: auto; padding: 10px; }
+  .cart-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 8px;
+    border-radius: var(--radius-sm); border-bottom: 1px solid var(--border);
+  }
+  .cart-item-name { flex: 1; font-size: 13px; font-weight: 500; }
+  .cart-item-sub { font-size: 11px; color: var(--text2); }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+  .qty-btn {
+    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text); cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.1s;
+  }
+  .qty-btn:hover { background: var(--bg4); }
+  .qty-num { font-family: var(--mono); font-size: 13px; min-width: 20px; text-align: center; }
+  .cart-item-total { font-family: var(--mono); font-size: 13px; color: var(--text); min-width: 56px; text-align: right; }
+  .remove-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 2px; }
+  .remove-btn:hover { color: var(--red); }
+  .cart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text3); gap: 10px; }
+  .cart-empty i { font-size: 36px; }
+  .cart-empty p { font-size: 13px; }
+  .cart-footer { padding: 14px; border-top: 1px solid var(--border); }
+  .cart-subtotal { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .cart-total { display: flex; justify-content: space-between; font-family: var(--display); font-size: 20px; font-weight: 800; margin-bottom: 14px; }
+  .cart-total span:last-child { color: var(--accent2); }
+  .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .pay-btn {
+    padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text2); font-size: 12px; cursor: pointer; text-align: center; transition: all 0.15s;
+    font-family: var(--sans); display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .pay-btn:hover, .pay-btn.selected { border-color: var(--accent); color: var(--accent2); background: rgba(124,110,245,0.1); }
+  .checkout-btn {
+    width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-family: var(--display); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .checkout-btn:hover { background: #6b5de0; }
+  .checkout-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* INVENTORY */
+  .inv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .inv-search {
+    display: flex; align-items: center; gap: 10px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 12px; width: 280px;
+  }
+  .inv-search input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; padding: 8px 0; font-family: var(--sans); flex: 1; }
+  .inv-search input::placeholder { color: var(--text3); }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; color: var(--text3); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); background: var(--bg2);
+  }
+  td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-green { background: rgba(34,201,123,0.15); color: var(--green); }
+  .badge-amber { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .badge-red { background: rgba(240,82,82,0.15); color: var(--red); }
+  .stock-bar { width: 80px; height: 5px; background: var(--bg4); border-radius: 3px; margin-top: 3px; }
+  .stock-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px;
+    padding: 28px; width: 440px; max-width: 95vw;
+    transform: translateY(16px); transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 { font-family: var(--display); font-weight: 700; font-size: 18px; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--text2); margin-bottom: 5px; display: block; }
+  .form-input {
+    width: 100%; padding: 9px 12px; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: var(--sans); outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-select {
+    width: 100%; padding: 9px 12px; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: var(--sans); outline: none;
+    cursor: pointer;
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* REPORTS */
+  .reports-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
+  .chart-placeholder { height: 180px; display: flex; align-items: flex-end; gap: 4px; padding: 0 4px; }
+  .line-chart-wrap { height: 160px; position: relative; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .report-period { display: flex; gap: 6px; }
+  .period-btn {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: none;
+    color: var(--text2); font-size: 11px; cursor: pointer; font-family: var(--sans);
+  }
+  .period-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* TOAST */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    padding: 12px 16px; font-size: 13px; display: flex; align-items: center; gap: 10px;
+    transform: translateX(120%); transition: transform 0.3s; min-width: 220px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast i { font-size: 16px; }
+  .toast.success { border-color: rgba(34,201,123,0.3); }
+  .toast.success i { color: var(--green); }
+
+  /* RECEIPT MODAL */
+  .receipt {
+    font-family: var(--mono); font-size: 12px; background: var(--bg3);
+    border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .receipt-line { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .receipt-divider { border: none; border-top: 1px dashed var(--border2); margin: 8px 0; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 4px; }
+
+  /* CANVAS for chart */
+  canvas { display: block; }
+
+  .alert-low { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><i class="ti ti-shopping-bag" aria-hidden="true"></i></div>
+    <div class="logo-text">Retail<span>OS</span></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" onclick="navigate('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+    <div class="nav-item" onclick="navigate('pos',this)"><i class="ti ti-receipt"></i> Point of Sale</div>
+    <div class="nav-label">Management</div>
+    <div class="nav-item" onclick="navigate('inventory',this)"><i class="ti ti-box"></i> Inventory</div>
+    <div class="nav-item" onclick="navigate('expenses',this)"><i class="ti ti-file-invoice"></i> Expenses</div>
+    <div class="nav-item" onclick="navigate('reports',this)"><i class="ti ti-chart-bar"></i> Reports</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="avatar">AD</div>
+    <div class="avatar-info"><p>Admin</p><span>Store Manager</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div class="topbar-right">
+      <div id="topbar-date" style="font-size:12px;color:var(--text2);font-family:var(--mono);"></div>
+      <button class="btn btn-accent" id="topbar-action" onclick="openAddProduct()"><i class="ti ti-plus"></i> Add Product</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div id="view-dashboard" class="view active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Today's Revenue <i class="ti ti-cash" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="stat-revenue">₱0</div>
+          <div class="stat-sub"><span class="up" id="stat-txn-count">0 transactions</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cost of Goods Sold <i class="ti ti-receipt" style="color:var(--red)"></i></div>
+          <div class="stat-value" id="stat-cogs" style="color:var(--red)">₱0</div>
+          <div class="stat-sub"><span id="stat-items">0</span> items sold</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Expenses <i class="ti ti-file-invoice" style="color:var(--amber)"></i></div>
+          <div class="stat-value" id="stat-expenses" style="color:var(--amber)">₱0</div>
+          <div class="stat-sub"><span id="stat-exp-count">0</span> expense entries</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(34,201,123,0.25);background:rgba(34,201,123,0.05)">
+          <div class="stat-label">Net Profit <i class="ti ti-trending-up" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="stat-profit" style="color:var(--green)">₱0</div>
+          <div class="stat-sub"><span id="stat-margin" style="color:var(--text3)">0% margin</span></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px">
+        <div class="stat-card">
+          <div class="stat-label">Products <i class="ti ti-database" style="color:var(--accent2)"></i></div>
+          <div class="stat-value" id="stat-products">0</div>
+          <div class="stat-sub"><span class="dn" id="stat-low-stock">0 low stock</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Inventory Value <i class="ti ti-box" style="color:var(--blue)"></i></div>
+          <div class="stat-value" id="stat-inv-value">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)">At cost price</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Sale Value <i class="ti ti-chart-line" style="color:var(--accent2)"></i></div>
+          <div class="stat-value" id="stat-avg-val">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)" id="stat-avg-sub">per transaction</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="ti ti-chart-bar" style="margin-right:6px;color:var(--accent2)"></i>Sales This Week</h2>
+            <span style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="week-total">₱0 total</span>
+          </div>
+          <div class="chart-bars" id="week-chart"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2><i class="ti ti-trending-up" style="margin-right:6px;color:var(--green)"></i>Top Products</h2></div>
+          <div id="top-products-list"></div>
+        </div>
+      </div>
+      <div style="margin-top:14px" class="card">
+        <div class="card-header"><h2><i class="ti ti-clock" style="margin-right:6px;color:var(--blue)"></i>Recent Transactions</h2></div>
+        <div id="recent-txn-list"><div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No transactions yet today.</div></div>
+      </div>
+    </div>
+
+    <!-- POS -->
+    <div id="view-pos" class="view">
+      <div class="pos-layout">
+        <div class="products-panel">
+          <div class="search-bar">
+            <i class="ti ti-search"></i>
+            <input type="text" placeholder="Search products..." id="pos-search" oninput="filterPOSProducts()">
+          </div>
+          <div class="cat-tabs" id="cat-tabs"></div>
+          <div class="products-grid" id="pos-grid"></div>
+        </div>
+        <div class="cart-panel">
+          <div class="cart-header">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <h2><i class="ti ti-shopping-cart" style="margin-right:6px;color:var(--accent2)"></i>Current Order</h2>
+              <button class="btn btn-sm" onclick="clearCart()"><i class="ti ti-trash"></i> Clear</button>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:var(--text3)">Order #<span id="order-num" style="font-family:var(--mono)"></span></div>
+          </div>
+          <div class="cart-items" id="cart-items">
+            <div class="cart-empty"><i class="ti ti-shopping-cart-off"></i><p>Cart is empty</p><p style="font-size:11px">Click a product to add</p></div>
+          </div>
+          <div class="cart-footer">
+            <div class="cart-subtotal"><span>Subtotal</span><span id="cart-sub">₱0.00</span></div>
+            <div class="cart-subtotal"><span>Tax (12%)</span><span id="cart-tax">₱0.00</span></div>
+            <div class="cart-total"><span>Total</span><span id="cart-total">₱0.00</span></div>
+            <div class="payment-methods">
+              <button class="pay-btn selected" onclick="selectPayment('cash',this)"><i class="ti ti-cash"></i> Cash</button>
+              <button class="pay-btn" onclick="selectPayment('card',this)"><i class="ti ti-credit-card"></i> Card</button>
+              <button class="pay-btn" onclick="selectPayment('gcash',this)"><i class="ti ti-device-mobile"></i> GCash</button>
+              <button class="pay-btn" onclick="selectPayment('maya',this)"><i class="ti ti-wallet"></i> Maya</button>
+            </div>
+            <button class="checkout-btn" id="checkout-btn" onclick="checkout()" disabled>
+              <i class="ti ti-check"></i> Process Payment
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="view-inventory" class="view">
+      <div class="inv-header">
+        <div class="inv-search">
+          <i class="ti ti-search" style="color:var(--text3);font-size:15px"></i>
+          <input type="text" placeholder="Search inventory..." id="inv-search" oninput="filterInventory()">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="inv-count" style="font-size:12px;color:var(--text3)"></span>
+          <button class="btn btn-accent" onclick="openAddProduct()"><i class="ti ti-plus"></i> Add Product</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>SKU</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Cost</th>
+              <th>Stock</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div id="view-expenses" class="view">
+      <div class="inv-header">
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="inv-search">
+            <i class="ti ti-search" style="color:var(--text3);font-size:15px"></i>
+            <input type="text" placeholder="Search expenses..." id="exp-search" oninput="filterExpenses()">
+          </div>
+          <select class="form-select" id="exp-cat-filter" onchange="filterExpenses()" style="width:160px;padding:8px 12px;font-size:13px">
+            <option value="">All Categories</option>
+            <option>Rent</option><option>Utilities</option><option>Salaries</option>
+            <option>Supplies</option><option>Supplier Payment</option><option>Maintenance</option><option>Other</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="exp-total-badge" style="font-size:12px;color:var(--text3)"></span>
+          <button class="btn btn-accent" onclick="openAddExpense()"><i class="ti ti-plus"></i> Log Expense</button>
+        </div>
+      </div>
+
+      <!-- P&L Summary Bar -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-label">Total Revenue <i class="ti ti-cash" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="pl-revenue" style="color:var(--green)">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)">From sales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cost of Goods <i class="ti ti-package" style="color:var(--blue)"></i></div>
+          <div class="stat-value" id="pl-cogs" style="color:var(--blue)">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)">Stock cost sold</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Operating Expenses <i class="ti ti-file-invoice" style="color:var(--amber)"></i></div>
+          <div class="stat-value" id="pl-opex" style="color:var(--amber)">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)"><span id="pl-exp-count">0</span> entries</div>
+        </div>
+        <div class="stat-card" id="pl-profit-card" style="border-color:rgba(34,201,123,0.25);background:rgba(34,201,123,0.05)">
+          <div class="stat-label">Net Profit <i class="ti ti-trending-up" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="pl-profit" style="color:var(--green)">₱0</div>
+          <div class="stat-sub"><span id="pl-margin" style="color:var(--text3)">0% margin</span></div>
+        </div>
+      </div>
+
+      <!-- Profit waterfall bar -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><h2><i class="ti ti-chart-waterfall" style="margin-right:6px;color:var(--accent2)"></i>Profit & Loss Breakdown</h2></div>
+        <div id="pl-waterfall" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+
+      <!-- Expense table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="exp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="view-reports" class="view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div style="font-size:13px;color:var(--text2)">Analytics & profit overview for your store</div>
+        <div class="report-period">
+          <button class="period-btn active">Today</button>
+          <button class="period-btn">Week</button>
+          <button class="period-btn">Month</button>
+        </div>
+      </div>
+
+      <!-- P&L Summary -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-label">Gross Revenue <i class="ti ti-cash" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="rpt-revenue" style="color:var(--green)">₱0</div>
+          <div class="stat-sub"><span id="rpt-txn">0</span> transactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cost of Goods Sold <i class="ti ti-package" style="color:var(--blue)"></i></div>
+          <div class="stat-value" id="rpt-cogs" style="color:var(--blue)">₱0</div>
+          <div class="stat-sub" id="rpt-gross-pct" style="color:var(--text3)">Gross margin 0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Operating Expenses <i class="ti ti-file-invoice" style="color:var(--amber)"></i></div>
+          <div class="stat-value" id="rpt-opex" style="color:var(--amber)">₱0</div>
+          <div class="stat-sub" style="color:var(--text3)" id="rpt-opex-count">0 entries</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(34,201,123,0.25);background:rgba(34,201,123,0.05)">
+          <div class="stat-label">Net Profit <i class="ti ti-trending-up" style="color:var(--green)"></i></div>
+          <div class="stat-value" id="rpt-profit" style="color:var(--green)">₱0</div>
+          <div class="stat-sub"><span id="rpt-margin" style="color:var(--text3)">0% net margin</span></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <!-- P&L Statement -->
+        <div class="card">
+          <div class="card-header"><h2><i class="ti ti-report-money" style="margin-right:6px;color:var(--accent2)"></i>P&L Statement</h2></div>
+          <div id="rpt-pl-statement"></div>
+        </div>
+
+        <!-- Revenue vs Expense Chart -->
+        <div class="card">
+          <div class="card-header"><h2><i class="ti ti-chart-bar" style="margin-right:6px;color:var(--green)"></i>Revenue vs Expenses</h2></div>
+          <div id="rpt-rev-exp-chart"></div>
+          <div style="display:flex;gap:14px;margin-top:12px;font-size:12px">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:var(--accent)"></div><span style="color:var(--text2)">Revenue</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:var(--red)"></div><span style="color:var(--text2)">COGS</span></div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:2px;background:var(--amber)"></div><span style="color:var(--text2)">Expenses</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="card-header"><h2>Payment Methods</h2></div>
+          <div id="payment-breakdown" style="display:flex;flex-direction:column;gap:10px;margin-top:4px"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Inventory Health</h2></div>
+          <div id="inv-health" style="display:flex;flex-direction:column;gap:10px;margin-top:4px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>All Transactions</h2></div>
+        <div id="all-txn-table"><div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No transactions recorded.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <h2 id="modal-title">Add Product</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Product Name</label>
+        <input type="text" class="form-input" id="prod-name-input" placeholder="e.g. Coca-Cola 1.5L">
+      </div>
+      <div class="form-group">
+        <label class="form-label">SKU</label>
+        <input type="text" class="form-input" id="prod-sku-input" placeholder="e.g. BEV-001">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="prod-cat-input">
+        <option>Beverages</option>
+        <option>Snacks</option>
+        <option>Household</option>
+        <option>Personal Care</option>
+        <option>Frozen</option>
+        <option>Dairy</option>
+        <option>Canned Goods</option>
+        <option>Bread & Bakery</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Selling Price (₱)</label>
+        <input type="number" class="form-input" id="prod-price-input" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cost Price (₱)</label>
+        <input type="number" class="form-input" id="prod-cost-input" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Stock Quantity</label>
+        <input type="number" class="form-input" id="prod-stock-input" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Low Stock Alert</label>
+        <input type="number" class="form-input" id="prod-low-input" placeholder="10">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon (emoji)</label>
+      <input type="text" class="form-input" id="prod-icon-input" placeholder="🛒" maxlength="2">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveProduct()"><i class="ti ti-check"></i> Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="receipt-modal">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px">🎉</div>
+      <h2 style="margin-top:8px">Payment Successful</h2>
+    </div>
+    <div class="receipt" id="receipt-content"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeReceipt()"><i class="ti ti-printer"></i> Print</button>
+      <button class="btn btn-accent" onclick="closeReceipt()">New Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- EXPENSE MODAL -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <h2 id="exp-modal-title">Log Expense</h2>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input type="text" class="form-input" id="exp-desc-input" placeholder="e.g. Monthly rent payment">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="exp-cat-input">
+          <option>Rent</option><option>Utilities</option><option>Salaries</option>
+          <option>Supplies</option><option>Supplier Payment</option><option>Maintenance</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (₱)</label>
+        <input type="number" class="form-input" id="exp-amount-input" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="exp-date-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reference / Receipt #</label>
+        <input type="text" class="form-input" id="exp-ref-input" placeholder="Optional">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <input type="text" class="form-input" id="exp-notes-input" placeholder="Optional notes">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeExpenseModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveExpense()"><i class="ti ti-check"></i> Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === STATE ===
+let products = [
+  {id:1,name:"Coca-Cola 1.5L",sku:"BEV-001",category:"Beverages",price:75,cost:55,stock:48,lowStock:10,icon:"🥤"},
+  {id:2,name:"Lucky Me Pancit",sku:"SNK-001",category:"Snacks",price:15,cost:9,stock:120,lowStock:20,icon:"🍜"},
+  {id:3,name:"Safeguard Soap",sku:"PC-001",category:"Personal Care",price:52,cost:38,stock:30,lowStock:10,icon:"🧼"},
+  {id:4,name:"Tide Powder 1kg",sku:"HH-001",category:"Household",price:125,cost:90,stock:25,lowStock:8,icon:"🧺"},
+  {id:5,name:"Sky Flakes",sku:"SNK-002",category:"Snacks",price:28,cost:18,stock:80,lowStock:15,icon:"🍘"},
+  {id:6,name:"Nestlé Fresh Milk",sku:"DRY-001",category:"Dairy",price:89,cost:68,stock:12,lowStock:10,icon:"🥛"},
+  {id:7,name:"Del Monte Tomato Sauce",sku:"CAN-001",category:"Canned Goods",price:45,cost:30,stock:60,lowStock:12,icon:"🥫"},
+  {id:8,name:"Gardenia Loaf",sku:"BRD-001",category:"Bread & Bakery",price:65,cost:48,stock:8,lowStock:5,icon:"🍞"},
+  {id:9,name:"Sprite 1.5L",sku:"BEV-002",category:"Beverages",price:72,cost:52,stock:36,lowStock:10,icon:"🍋"},
+  {id:10,name:"Boy Bawang",sku:"SNK-003",category:"Snacks",price:18,cost:11,stock:6,lowStock:10,icon:"🧄"},
+  {id:11,name:"Knorr Chicken Cubes",sku:"CAN-002",category:"Canned Goods",price:35,cost:22,stock:90,lowStock:15,icon:"🫙"},
+  {id:12,name:"Selecta Ice Cream",sku:"FRZ-001",category:"Frozen",price:185,cost:140,stock:14,lowStock:5,icon:"🍨"},
+];
+
+let cart = [];
+let transactions = [];
+let expenses = [
+  {id:1,desc:'Monthly Rent',category:'Rent',amount:8000,date:'2026-05-01',ref:'',notes:'May rent'},
+  {id:2,desc:'Meralco Electric Bill',category:'Utilities',amount:2400,date:'2026-05-05',ref:'MEL-8823',notes:''},
+  {id:3,desc:'Staff Salary - Ana',category:'Salaries',amount:5000,date:'2026-05-05',ref:'',notes:'Semi-monthly'},
+];
+let nextExpId = 4;
+let editingExpId = null;
+let selectedPayment = 'cash';
+let editingId = null;
+let nextId = 13;
+let orderNum = 1001;
+
+// === NAV ===
+function navigate(view, el) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-'+view).classList.add('active');
+  const titles = {dashboard:'Dashboard',pos:'Point of Sale',inventory:'Inventory',expenses:'Expenses',reports:'Reports & Analytics'};
+  document.getElementById('page-title').textContent = titles[view];
+  const actions = {
+    dashboard:'<i class="ti ti-plus"></i> Add Product',
+    pos:'<i class="ti ti-refresh"></i> New Order',
+    inventory:'<i class="ti ti-plus"></i> Add Product',
+    expenses:'<i class="ti ti-plus"></i> Log Expense',
+    reports:'<i class="ti ti-download"></i> Export'
+  };
+  document.getElementById('topbar-action').innerHTML = actions[view];
+  document.getElementById('topbar-action').onclick = view==='pos' ? ()=>{clearCart()} : view==='expenses' ? openAddExpense : openAddProduct;
+  if(view==='pos') renderPOS();
+  if(view==='inventory') renderInventory();
+  if(view==='dashboard') renderDashboard();
+  if(view==='expenses') renderExpenses();
+  if(view==='reports') renderReports();
+}
+
+function renderDashboard() {
+  const todayTxn = transactions;
+  const todayRev = todayTxn.reduce((s,t)=>s+t.total,0);
+  const todayCOGS = todayTxn.reduce((s,t)=>s+(t.cogs||0),0);
+  const todayItems = todayTxn.reduce((s,t)=>s+t.items.reduce((a,i)=>a+i.qty,0),0);
+  const totalExp = expenses.reduce((s,e)=>s+e.amount,0);
+  const netProfit = todayRev - todayCOGS - totalExp;
+  const margin = todayRev>0 ? Math.round(netProfit/todayRev*100) : 0;
+  const lowCount = products.filter(p=>p.stock<=p.lowStock).length;
+  const invVal = products.reduce((s,p)=>s+p.stock*p.cost,0);
+
+  document.getElementById('stat-revenue').textContent = '₱'+todayRev.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('stat-txn-count').textContent = todayTxn.length+' transaction'+(todayTxn.length!==1?'s':'');
+  document.getElementById('stat-cogs').textContent = '₱'+todayCOGS.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('stat-items').textContent = todayItems;
+  document.getElementById('stat-expenses').textContent = '₱'+totalExp.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('stat-exp-count').textContent = expenses.length;
+  document.getElementById('stat-profit').textContent = '₱'+netProfit.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('stat-profit').style.color = netProfit>=0?'var(--green)':'var(--red)';
+  document.getElementById('stat-margin').textContent = margin+'% margin';
+  document.getElementById('stat-products').textContent = products.length;
+  document.getElementById('stat-low-stock').textContent = lowCount+' low stock';
+  document.getElementById('stat-inv-value').textContent = '₱'+invVal.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('stat-avg-val').textContent = '₱'+(todayTxn.length?Math.round(todayRev/todayTxn.length):0);
+
+  // Week chart
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const simData = [8450,11200,9300,14600,13100,16800,todayRev];
+  const max = Math.max(...simData,1);
+  let weekTotal = simData.reduce((a,b)=>a+b,0);
+  document.getElementById('week-total').textContent = '₱'+weekTotal.toLocaleString('en-PH');
+  const chart = document.getElementById('week-chart');
+  chart.innerHTML = days.map((d,i)=>`
+    <div class="bar-wrap">
+      <div class="bar-val" style="font-size:10px;color:var(--text3);margin-bottom:3px">₱${(simData[i]/1000).toFixed(1)}k</div>
+      <div class="bar" style="height:${Math.max(8,Math.round(simData[i]/max*110))}px;background:${i===6?'var(--accent)':'rgba(124,110,245,0.4)'}"></div>
+      <div class="bar-label">${d}</div>
+    </div>`).join('');
+
+  // Top products
+  const prodSales = {};
+  transactions.forEach(t=>t.items.forEach(i=>{
+    prodSales[i.id]=(prodSales[i.id]||{name:i.name,qty:0,rev:0});
+    prodSales[i.id].qty+=i.qty; prodSales[i.id].rev+=i.price*i.qty;
+  }));
+  const sorted = Object.values(prodSales).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  const simTop = sorted.length?sorted:[
+    {name:'Coca-Cola 1.5L',qty:24,rev:1800},{name:'Lucky Me Pancit',qty:80,rev:1200},
+    {name:'Sky Flakes',qty:45,rev:1260},{name:'Del Monte Sauce',qty:30,rev:1350},{name:'Sprite 1.5L',qty:20,rev:1440}
+  ];
+  document.getElementById('top-products-list').innerHTML = simTop.map((p,i)=>`
+    <div class="top-item">
+      <div class="top-rank">${i+1}</div>
+      <div class="top-info"><p>${p.name}</p><span>${p.qty} units sold</span></div>
+      <div class="top-sales">₱${p.rev.toLocaleString()}</div>
+    </div>`).join('');
+
+  // Recent txn
+  const txnEl = document.getElementById('recent-txn-list');
+  if(!transactions.length){
+    txnEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No transactions yet today.</div>';
+  } else {
+    txnEl.innerHTML = [...transactions].reverse().slice(0,6).map(t=>`
+      <div class="txn-item">
+        <div><div class="txn-id">#${t.id}</div><div class="txn-time">${t.time}</div></div>
+        <div style="flex:1;padding:0 12px;font-size:12px;color:var(--text2)">${t.items.length} item(s)</div>
+        <div style="text-align:right"><div class="txn-amount">₱${t.total.toFixed(2)}</div><div class="txn-method">${t.payment}</div></div>
+      </div>`).join('');
+  }
+}
+
+// === POS ===
+let posCategory = 'All';
+function renderPOS() {
+  document.getElementById('order-num').textContent = orderNum;
+  const cats = ['All',...new Set(products.map(p=>p.category))];
+  document.getElementById('cat-tabs').innerHTML = cats.map(c=>`
+    <div class="cat-tab ${c===posCategory?'active':''}" onclick="setPOSCat('${c}',this)">${c}</div>`).join('');
+  renderPOSGrid();
+  renderCart();
+}
+function setPOSCat(cat,el) {
+  posCategory=cat;
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderPOSGrid();
+}
+function filterPOSProducts() { renderPOSGrid(); }
+function renderPOSGrid() {
+  const q = document.getElementById('pos-search').value.toLowerCase();
+  const filtered = products.filter(p=>{
+    const catMatch = posCategory==='All'||p.category===posCategory;
+    const searchMatch = !q||p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q);
+    return catMatch&&searchMatch;
+  });
+  document.getElementById('pos-grid').innerHTML = filtered.map(p=>`
+    <div class="product-card ${p.stock<=0?'out-of-stock':''}" onclick="addToCart(${p.id})">
+      ${p.stock<=p.lowStock&&p.stock>0?`<div class="prod-badge">Low</div>`:''}
+      <div class="prod-icon">${p.icon}</div>
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-price">₱${p.price.toFixed(2)}</div>
+      <div class="prod-stock">${p.stock<=0?'Out of stock':p.stock+' in stock'}</div>
+    </div>`).join('');
+}
+function addToCart(id) {
+  const p = products.find(x=>x.id===id);
+  if(!p||p.stock<=0) return;
+  const existing = cart.find(x=>x.id===id);
+  if(existing) { if(existing.qty<p.stock) existing.qty++; else { showToast('Max stock reached','ti-alert-triangle'); return; } }
+  else cart.push({id:p.id,name:p.name,price:p.price,qty:1,icon:p.icon});
+  renderCart();
+}
+function renderCart() {
+  const el = document.getElementById('cart-items');
+  if(!cart.length) {
+    el.innerHTML = '<div class="cart-empty"><i class="ti ti-shopping-cart-off"></i><p>Cart is empty</p><p style="font-size:11px">Click a product to add</p></div>';
+  } else {
+    el.innerHTML = cart.map(item=>`
+      <div class="cart-item">
+        <div style="font-size:18px">${item.icon}</div>
+        <div style="flex:1">
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-sub">₱${item.price.toFixed(2)} each</div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+          <span class="qty-num">${item.qty}</span>
+          <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+        </div>
+        <div class="cart-item-total">₱${(item.price*item.qty).toFixed(2)}</div>
+        <button class="remove-btn" onclick="removeFromCart(${item.id})"><i class="ti ti-x"></i></button>
+      </div>`).join('');
+  }
+  const sub = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const tax = sub*0.12;
+  const total = sub+tax;
+  document.getElementById('cart-sub').textContent = '₱'+sub.toFixed(2);
+  document.getElementById('cart-tax').textContent = '₱'+tax.toFixed(2);
+  document.getElementById('cart-total').textContent = '₱'+total.toFixed(2);
+  document.getElementById('checkout-btn').disabled = cart.length===0;
+}
+function changeQty(id,delta) {
+  const item = cart.find(x=>x.id===id);
+  const prod = products.find(x=>x.id===id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty<=0) cart = cart.filter(x=>x.id!==id);
+  if(item.qty>prod.stock) item.qty=prod.stock;
+  renderCart();
+}
+function removeFromCart(id) { cart=cart.filter(x=>x.id!==id); renderCart(); }
+function clearCart() { cart=[]; orderNum++; document.getElementById('order-num').textContent=orderNum; renderCart(); }
+function selectPayment(method,el) {
+  selectedPayment=method;
+  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function checkout() {
+  if(!cart.length) return;
+  const sub = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const tax = sub*0.12;
+  const total = sub+tax;
+  // Calculate COGS for this sale
+  let cogs = 0;
+  cart.forEach(item=>{
+    const p=products.find(x=>x.id===item.id);
+    if(p){ cogs+=p.cost*item.qty; p.stock-=item.qty; }
+  });
+  const txn = {
+    id:'TXN-'+String(orderNum).padStart(4,'0'),
+    time:new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}),
+    items:[...cart.map(i=>({...i}))],
+    subtotal:sub, tax:tax, total:total, cogs:cogs, payment:selectedPayment,
+    date:new Date().toLocaleDateString()
+  };
+  transactions.push(txn);
+  showReceipt(txn);
+  cart=[];
+  orderNum++;
+  renderCart();
+  renderPOSGrid();
+  showToast('Payment processed! ₱'+total.toFixed(2),'ti-check');
+}
+function showReceipt(txn) {
+  document.getElementById('receipt-content').innerHTML = `
+    <div style="text-align:center;margin-bottom:8px">
+      <div style="font-weight:500;font-size:13px">RetailOS Store</div>
+      <div style="color:var(--text3);font-size:11px">Official Receipt</div>
+    </div>
+    <hr class="receipt-divider">
+    <div class="receipt-line"><span>Order:</span><span>${txn.id}</span></div>
+    <div class="receipt-line"><span>Time:</span><span>${txn.time}</span></div>
+    <div class="receipt-line"><span>Payment:</span><span>${txn.payment.toUpperCase()}</span></div>
+    <hr class="receipt-divider">
+    ${txn.items.map(i=>`<div class="receipt-line"><span>${i.name} x${i.qty}</span><span>₱${(i.price*i.qty).toFixed(2)}</span></div>`).join('')}
+    <hr class="receipt-divider">
+    <div class="receipt-line"><span>Subtotal</span><span>₱${txn.subtotal.toFixed(2)}</span></div>
+    <div class="receipt-line"><span>VAT (12%)</span><span>₱${txn.tax.toFixed(2)}</span></div>
+    <hr class="receipt-divider">
+    <div class="receipt-line" style="font-size:14px;font-weight:500"><span>TOTAL</span><span>₱${txn.total.toFixed(2)}</span></div>
+    <div style="text-align:center;margin-top:10px;color:var(--text3);font-size:11px">Thank you for shopping!</div>`;
+  document.getElementById('receipt-modal').classList.add('open');
+}
+function closeReceipt() {
+  document.getElementById('receipt-modal').classList.remove('open');
+  renderDashboard();
+}
+
+// === INVENTORY ===
+function renderInventory() {
+  const q = (document.getElementById('inv-search')?.value||'').toLowerCase();
+  const filtered = products.filter(p=>!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)||p.category.toLowerCase().includes(q));
+  document.getElementById('inv-count').textContent = filtered.length+' of '+products.length+' products';
+  document.getElementById('inv-tbody').innerHTML = filtered.map(p=>{
+    const pct = Math.min(100,Math.round(p.stock/(p.lowStock*4)*100));
+    const status = p.stock<=0?'<span class="badge badge-red">Out</span>':p.stock<=p.lowStock?'<span class="badge badge-amber">Low</span>':'<span class="badge badge-green">OK</span>';
+    const fillColor = p.stock<=0?'var(--red)':p.stock<=p.lowStock?'var(--amber)':'var(--green)';
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${p.icon}</span><div><div style="font-weight:500">${p.name}</div></div></div></td>
+      <td><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${p.sku}</span></td>
+      <td><span style="color:var(--text2);font-size:12px">${p.category}</span></td>
+      <td style="font-family:var(--mono)">₱${p.price.toFixed(2)}</td>
+      <td style="font-family:var(--mono);color:var(--text2)">₱${p.cost.toFixed(2)}</td>
+      <td>
+        <div style="font-weight:500;font-size:13px;${p.stock<=p.lowStock&&p.stock>0?'color:var(--amber)':''}">${p.stock}</div>
+        <div class="stock-bar"><div class="stock-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+      </td>
+      <td>${status}</td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm" onclick="openEditProduct(${p.id})"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm" onclick="quickRestock(${p.id})"><i class="ti ti-plus"></i> Stock</button>
+          <button class="btn btn-sm btn-red" onclick="deleteProduct(${p.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function filterInventory() { renderInventory(); }
+function quickRestock(id) {
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  const qty = prompt(`Restock "${p.name}"\nCurrent stock: ${p.stock}\nAdd quantity:`);
+  if(qty&&!isNaN(qty)&&parseInt(qty)>0){
+    p.stock+=parseInt(qty);
+    renderInventory();
+    showToast(`Restocked ${p.name} +${qty}`,'ti-package');
+  }
+}
+function deleteProduct(id) {
+  if(!confirm('Delete this product?')) return;
+  products=products.filter(x=>x.id!==id);
+  cart=cart.filter(x=>x.id!==id);
+  renderInventory();
+  showToast('Product deleted','ti-trash');
+}
+
+// === ADD/EDIT PRODUCT ===
+function openAddProduct() {
+  editingId=null;
+  document.getElementById('modal-title').textContent='Add Product';
+  ['prod-name-input','prod-sku-input','prod-price-input','prod-cost-input','prod-stock-input','prod-low-input'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('prod-icon-input').value='🛒';
+  document.getElementById('prod-cat-input').value='Beverages';
+  document.getElementById('product-modal').classList.add('open');
+}
+function openEditProduct(id) {
+  const p=products.find(x=>x.id===id);
+  if(!p)return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Edit Product';
+  document.getElementById('prod-name-input').value=p.name;
+  document.getElementById('prod-sku-input').value=p.sku;
+  document.getElementById('prod-cat-input').value=p.category;
+  document.getElementById('prod-price-input').value=p.price;
+  document.getElementById('prod-cost-input').value=p.cost;
+  document.getElementById('prod-stock-input').value=p.stock;
+  document.getElementById('prod-low-input').value=p.lowStock;
+  document.getElementById('prod-icon-input').value=p.icon;
+  document.getElementById('product-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('product-modal').classList.remove('open'); }
+function saveProduct() {
+  const name=document.getElementById('prod-name-input').value.trim();
+  const sku=document.getElementById('prod-sku-input').value.trim();
+  const price=parseFloat(document.getElementById('prod-price-input').value);
+  const cost=parseFloat(document.getElementById('prod-cost-input').value);
+  const stock=parseInt(document.getElementById('prod-stock-input').value);
+  const lowStock=parseInt(document.getElementById('prod-low-input').value)||10;
+  const category=document.getElementById('prod-cat-input').value;
+  const icon=document.getElementById('prod-icon-input').value||'🛒';
+  if(!name||!sku||isNaN(price)||isNaN(cost)||isNaN(stock)){showToast('Please fill all required fields','ti-alert-triangle');return;}
+  if(editingId) {
+    const p=products.find(x=>x.id===editingId);
+    Object.assign(p,{name,sku,price,cost,stock,lowStock,category,icon});
+    showToast('Product updated','ti-check');
+  } else {
+    products.push({id:nextId++,name,sku,category,price,cost,stock,lowStock,icon});
+    showToast('Product added','ti-check');
+  }
+  closeModal();
+  const activeView = document.querySelector('.view.active');
+  if(activeView.id==='view-inventory') renderInventory();
+  if(activeView.id==='view-pos') renderPOS();
+}
+
+// === EXPENSES ===
+function renderExpenses() {
+  const q=(document.getElementById('exp-search')?.value||'').toLowerCase();
+  const cat=document.getElementById('exp-cat-filter')?.value||'';
+  const filtered=expenses.filter(e=>{
+    const matchQ=!q||e.desc.toLowerCase().includes(q)||e.category.toLowerCase().includes(q);
+    const matchC=!cat||e.category===cat;
+    return matchQ&&matchC;
+  });
+  const totalRev=transactions.reduce((s,t)=>s+t.total,0);
+  const totalCOGS=transactions.reduce((s,t)=>s+(t.cogs||0),0);
+  const totalExp=expenses.reduce((s,e)=>s+e.amount,0);
+  const grossProfit=totalRev-totalCOGS;
+  const netProfit=grossProfit-totalExp;
+  const netMargin=totalRev>0?Math.round(netProfit/totalRev*100):0;
+  const grossMargin=totalRev>0?Math.round(grossProfit/totalRev*100):0;
+
+  document.getElementById('pl-revenue').textContent='₱'+totalRev.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('pl-cogs').textContent='₱'+totalCOGS.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('pl-opex').textContent='₱'+totalExp.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('pl-exp-count').textContent=expenses.length;
+  document.getElementById('pl-profit').textContent='₱'+netProfit.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('pl-profit').style.color=netProfit>=0?'var(--green)':'var(--red)';
+  document.getElementById('pl-margin').textContent=netMargin+'% net margin';
+  document.getElementById('pl-profit-card').style.borderColor=netProfit>=0?'rgba(34,201,123,0.25)':'rgba(240,82,82,0.25)';
+  document.getElementById('pl-profit-card').style.background=netProfit>=0?'rgba(34,201,123,0.05)':'rgba(240,82,82,0.05)';
+
+  // Waterfall bars
+  const wfMax=Math.max(totalRev,totalCOGS+totalExp,1);
+  const rows=[
+    {label:'Gross Revenue',value:totalRev,color:'var(--green)',sign:'+'},
+    {label:'Cost of Goods Sold',value:totalCOGS,color:'var(--blue)',sign:'−'},
+    {label:'Gross Profit',value:grossProfit,color:'var(--accent2)',sign:'=',bold:true},
+    {label:'Operating Expenses',value:totalExp,color:'var(--amber)',sign:'−'},
+    {label:'Net Profit / Loss',value:netProfit,color:netProfit>=0?'var(--green)':'var(--red)',sign:'=',bold:true},
+  ];
+  document.getElementById('pl-waterfall').innerHTML=rows.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:14px;text-align:center;font-size:12px;color:var(--text3);font-family:var(--mono)">${r.sign}</div>
+      <div style="width:180px;font-size:13px;${r.bold?'font-weight:500':''}">${r.label}</div>
+      <div style="flex:1;height:8px;background:var(--bg4);border-radius:4px">
+        <div style="height:100%;width:${Math.min(100,Math.abs(r.value)/wfMax*100)}%;background:${r.color};border-radius:4px;opacity:${r.bold?1:0.8}"></div>
+      </div>
+      <div style="width:110px;text-align:right;font-family:var(--mono);font-size:13px;color:${r.color};${r.bold?'font-weight:500':''}">₱${r.value.toLocaleString('en-PH',{minimumFractionDigits:0})}</div>
+    </div>`).join('');
+
+  // Expense total badge
+  document.getElementById('exp-total-badge').textContent='₱'+filtered.reduce((s,e)=>s+e.amount,0).toLocaleString('en-PH',{minimumFractionDigits:2})+' total';
+
+  const catColors={Rent:'var(--accent2)',Utilities:'var(--blue)',Salaries:'var(--green)',Supplies:'var(--amber)',
+    'Supplier Payment':'var(--red)',Maintenance:'var(--text2)',Other:'var(--text3)'};
+  document.getElementById('exp-tbody').innerHTML=filtered.length?[...filtered].reverse().map(e=>`
+    <tr>
+      <td style="font-weight:500">${e.desc}</td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.06);color:${catColors[e.category]||'var(--text2)'}">${e.category}</span></td>
+      <td style="font-size:12px;color:var(--text2);font-family:var(--mono)">${e.date}</td>
+      <td style="font-family:var(--mono);color:var(--red);font-weight:500">₱${e.amount.toFixed(2)}</td>
+      <td style="font-size:12px;color:var(--text2)">${e.notes||'—'}</td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm" onclick="openEditExpense(${e.id})"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-red" onclick="deleteExpense(${e.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">No expenses found.</td></tr>';
+}
+function filterExpenses(){renderExpenses();}
+function openAddExpense(){
+  editingExpId=null;
+  document.getElementById('exp-modal-title').textContent='Log Expense';
+  ['exp-desc-input','exp-amount-input','exp-ref-input','exp-notes-input'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('exp-date-input').value=new Date().toISOString().split('T')[0];
+  document.getElementById('exp-cat-input').value='Rent';
+  document.getElementById('expense-modal').classList.add('open');
+}
+function openEditExpense(id){
+  const e=expenses.find(x=>x.id===id);if(!e)return;
+  editingExpId=id;
+  document.getElementById('exp-modal-title').textContent='Edit Expense';
+  document.getElementById('exp-desc-input').value=e.desc;
+  document.getElementById('exp-cat-input').value=e.category;
+  document.getElementById('exp-amount-input').value=e.amount;
+  document.getElementById('exp-date-input').value=e.date;
+  document.getElementById('exp-ref-input').value=e.ref||'';
+  document.getElementById('exp-notes-input').value=e.notes||'';
+  document.getElementById('expense-modal').classList.add('open');
+}
+function closeExpenseModal(){document.getElementById('expense-modal').classList.remove('open');}
+function saveExpense(){
+  const desc=document.getElementById('exp-desc-input').value.trim();
+  const category=document.getElementById('exp-cat-input').value;
+  const amount=parseFloat(document.getElementById('exp-amount-input').value);
+  const date=document.getElementById('exp-date-input').value;
+  const ref=document.getElementById('exp-ref-input').value.trim();
+  const notes=document.getElementById('exp-notes-input').value.trim();
+  if(!desc||isNaN(amount)||amount<=0){showToast('Please fill description and amount','ti-alert-triangle');return;}
+  if(editingExpId){
+    const e=expenses.find(x=>x.id===editingExpId);
+    Object.assign(e,{desc,category,amount,date,ref,notes});
+    showToast('Expense updated','ti-check');
+  } else {
+    expenses.push({id:nextExpId++,desc,category,amount,date,ref,notes});
+    showToast('Expense logged: ₱'+amount.toFixed(2),'ti-check');
+  }
+  closeExpenseModal();
+  renderExpenses();
+}
+function deleteExpense(id){
+  if(!confirm('Delete this expense entry?'))return;
+  expenses=expenses.filter(x=>x.id!==id);
+  renderExpenses();
+  showToast('Expense deleted','ti-trash');
+}
+
+// === REPORTS ===
+function renderReports() {
+  const totalRev=transactions.reduce((s,t)=>s+t.total,0);
+  const totalCOGS=transactions.reduce((s,t)=>s+(t.cogs||0),0);
+  const totalExp=expenses.reduce((s,e)=>s+e.amount,0);
+  const grossProfit=totalRev-totalCOGS;
+  const netProfit=grossProfit-totalExp;
+  const grossMargin=totalRev>0?Math.round(grossProfit/totalRev*100):0;
+  const netMargin=totalRev>0?Math.round(netProfit/totalRev*100):0;
+
+  document.getElementById('rpt-revenue').textContent='₱'+totalRev.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('rpt-txn').textContent=transactions.length;
+  document.getElementById('rpt-cogs').textContent='₱'+totalCOGS.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('rpt-gross-pct').textContent='Gross margin '+grossMargin+'%';
+  document.getElementById('rpt-opex').textContent='₱'+totalExp.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('rpt-opex-count').textContent=expenses.length+' entries';
+  document.getElementById('rpt-profit').textContent='₱'+netProfit.toLocaleString('en-PH',{minimumFractionDigits:0});
+  document.getElementById('rpt-profit').style.color=netProfit>=0?'var(--green)':'var(--red)';
+  document.getElementById('rpt-margin').textContent=netMargin+'% net margin';
+
+  // P&L Statement
+  const plRows=[
+    {label:'Gross Revenue',val:totalRev,style:'color:var(--text)',indent:false},
+    {label:'Cost of Goods Sold',val:-totalCOGS,style:'color:var(--red)',indent:true},
+    {label:'Gross Profit',val:grossProfit,style:'color:var(--accent2);font-weight:500',indent:false,divider:true},
+    {label:'Operating Expenses',val:-totalExp,style:'color:var(--amber)',indent:true},
+    {label:'Net Profit / Loss',val:netProfit,style:`color:${netProfit>=0?'var(--green)':'var(--red)'};font-weight:500`,indent:false,divider:true},
+  ];
+  document.getElementById('rpt-pl-statement').innerHTML=plRows.map(r=>`
+    ${r.divider?'<div style="border-top:1px solid var(--border);margin:6px 0"></div>':''}
+    <div style="display:flex;justify-content:space-between;padding:5px 0;${r.indent?'padding-left:12px':''}">
+      <span style="font-size:13px;color:${r.indent?'var(--text2)':'var(--text)'}">${r.label}</span>
+      <span style="font-family:var(--mono);font-size:13px;${r.style}">${r.val>=0?'':'−'}₱${Math.abs(r.val).toLocaleString('en-PH',{minimumFractionDigits:0})}</span>
+    </div>`).join('');
+
+  // Revenue vs expenses chart (grouped bars per simulated day)
+  const days=['M','T','W','T','F','S','Today'];
+  const simRev=[8450,11200,9300,14600,13100,16800,totalRev];
+  const simCOGS=[5900,7840,6510,10220,9170,11760,totalCOGS];
+  const simExp=[2400,2400,2400,2400,2400,2400,totalExp];
+  const maxV=Math.max(...simRev,1);
+  document.getElementById('rpt-rev-exp-chart').innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:6px;height:120px">
+      ${days.map((d,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end">
+          <div style="width:100%;display:flex;gap:2px;align-items:flex-end;justify-content:center">
+            <div style="flex:1;background:${i===6?'var(--accent)':'rgba(124,110,245,0.5)'};border-radius:2px 2px 0 0;height:${Math.max(3,Math.round(simRev[i]/maxV*90))}px"></div>
+            <div style="flex:1;background:${i===6?'var(--red)':'rgba(240,82,82,0.5)'};border-radius:2px 2px 0 0;height:${Math.max(3,Math.round(simCOGS[i]/maxV*90))}px"></div>
+            <div style="flex:1;background:${i===6?'var(--amber)':'rgba(245,166,35,0.5)'};border-radius:2px 2px 0 0;height:${Math.max(3,Math.round(simExp[i]/maxV*90))}px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${d}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Payment breakdown
+  const pmethods={};
+  transactions.forEach(t=>{pmethods[t.payment]=(pmethods[t.payment]||0)+t.total;});
+  const simMethods=Object.keys(pmethods).length?pmethods:{cash:5200,card:2800,gcash:3100,maya:1400};
+  const sTotal=Object.values(simMethods).reduce((a,b)=>a+b,0);
+  const colors={cash:'var(--green)',card:'var(--blue)',gcash:'var(--accent2)',maya:'var(--amber)'};
+  const labels={cash:'Cash',card:'Card',gcash:'GCash',maya:'Maya'};
+  document.getElementById('payment-breakdown').innerHTML=Object.entries(simMethods).map(([k,v])=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:13px">${labels[k]||k}</span>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${Math.round(v/sTotal*100)}%  ₱${v.toLocaleString()}</span>
+      </div>
+      <div style="height:6px;background:var(--bg4);border-radius:3px">
+        <div style="height:100%;width:${Math.round(v/sTotal*100)}%;background:${colors[k]||'var(--accent)'};border-radius:3px"></div>
+      </div>
+    </div>`).join('');
+
+  // Inventory health
+  const total_p=products.length;
+  const ok=products.filter(p=>p.stock>p.lowStock).length;
+  const low=products.filter(p=>p.stock>0&&p.stock<=p.lowStock).length;
+  const out=products.filter(p=>p.stock<=0).length;
+  document.getElementById('inv-health').innerHTML=[
+    {label:'In Stock',count:ok,color:'var(--green)'},
+    {label:'Low Stock',count:low,color:'var(--amber)'},
+    {label:'Out of Stock',count:out,color:'var(--red)'},
+  ].map(s=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:13px">${s.label}</span>
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${s.count} / ${total_p}</span>
+      </div>
+      <div style="height:6px;background:var(--bg4);border-radius:3px">
+        <div style="height:100%;width:${total_p?Math.round(s.count/total_p*100):0}%;background:${s.color};border-radius:3px"></div>
+      </div>
+    </div>`).join('');
+
+  // All txn table
+  const allTxnEl=document.getElementById('all-txn-table');
+  if(!transactions.length){
+    allTxnEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">No transactions recorded.</div>';
+  } else {
+    allTxnEl.innerHTML=`<table style="width:100%">
+      <thead><tr><th>ID</th><th>Time</th><th>Items</th><th>COGS</th><th>Payment</th><th>Revenue</th><th>Gross Profit</th></tr></thead>
+      <tbody>${[...transactions].reverse().map(t=>`
+        <tr>
+          <td style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${t.id}</td>
+          <td style="font-size:12px;color:var(--text2)">${t.time}</td>
+          <td style="font-size:12px">${t.items.map(i=>i.name+' x'+i.qty).join(', ')}</td>
+          <td style="font-family:var(--mono);font-size:12px;color:var(--red)">₱${(t.cogs||0).toFixed(2)}</td>
+          <td><span class="badge" style="background:rgba(124,110,245,0.15);color:var(--accent2)">${t.payment}</span></td>
+          <td style="font-family:var(--mono);font-weight:500">₱${t.total.toFixed(2)}</td>
+          <td style="font-family:var(--mono);color:var(--green)">₱${(t.total-(t.cogs||0)).toFixed(2)}</td>
+        </tr>`).join('')}</tbody></table>`;
+  }
+}
+
+// === TOAST ===
+function showToast(msg,icon='ti-check') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className='toast success';
+  el.innerHTML=`<i class="ti ${icon}"></i><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>el.classList.add('show'),10);
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); },3000);
+}
+
+// === DATE ===
+function updateDate() {
+  const now=new Date();
+  document.getElementById('topbar-date').textContent=now.toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+updateDate();
+setInterval(updateDate,60000);
+
+// === PERIOD BUTTONS ===
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// === INIT ===
+renderDashboard();
+</script>
+</body>
+</html>
