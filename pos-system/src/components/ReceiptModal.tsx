@@ -25,6 +25,7 @@ export default function ReceiptModal({ open, txn, onClose }: Props) {
           <div className="receipt-line"><span>Order:</span><span>{txn.id}</span></div>
           <div className="receipt-line"><span>Time:</span><span>{txn.time}</span></div>
           <div className="receipt-line"><span>Payment:</span><span>{txn.payment.toUpperCase()}</span></div>
+          {!txn.paid && txn.dueDate && <div className="receipt-line" style={{ color: 'var(--amber)' }}><span>Due Date:</span><span>{txn.dueDate}</span></div>}
           <hr className="receipt-divider" />
           {txn.items.map((item, i) => (
             <div key={i} className="receipt-line">

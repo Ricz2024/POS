@@ -42,6 +42,8 @@ function mapTransaction(
     total:    Number(row.total),
     cogs:     Number(row.cogs),
     date:     row.date as string,
+    paid:     (row.paid as boolean) ?? true,
+    dueDate:  (row.due_date as string) ?? null,
     items,
   }
 }
@@ -176,6 +178,11 @@ export async function fetchTransactions(): Promise<Transaction[]> {
   )
 }
 
+export async function markTransactionAsPaid(id: string): Promise<void> {
+  const { error } = await supabase.from('transactions').update({ paid: true }).eq('id', id)
+  if (error) throw error
+}
+
 export async function insertTransaction(txn: Transaction): Promise<void> {
   const { error: txErr } = await supabase.from('transactions').insert({
     id:       txn.id,
@@ -186,6 +193,8 @@ export async function insertTransaction(txn: Transaction): Promise<void> {
     total:    txn.total,
     cogs:     txn.cogs,
     date:     txn.date,
+    paid:     txn.paid,
+    due_date: txn.dueDate,
   })
   if (txErr) throw txErr
 

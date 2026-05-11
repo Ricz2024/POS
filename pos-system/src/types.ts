@@ -28,6 +28,8 @@ export interface Transaction {
   cogs: number;
   payment: string;
   date: string;
+  paid: boolean;
+  dueDate: string | null;
 }
 
 export interface Expense {

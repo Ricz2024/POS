@@ -22,6 +22,7 @@ const PAYMENT_METHODS = [
   { key: 'card', icon: 'ti-credit-card', label: 'Card' },
   { key: 'gcash', icon: 'ti-device-mobile', label: 'GCash' },
   { key: 'maya', icon: 'ti-wallet', label: 'Maya' },
+  { key: 'credit', icon: 'ti-calendar-event', label: 'Credit' },
 ]
 
 export default function POS({ products, cart, cartSub, cartTax, cartTotal, orderNum, selectedPayment, onAddToCart, onChangeQty, onRemoveFromCart, onClearCart, onSelectPayment, onCheckout }: Props) {

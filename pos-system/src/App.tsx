@@ -106,6 +106,8 @@ export default function App() {
       subtotal: sub, tax, total, cogs,
       payment: selectedPayment,
       date: new Date().toLocaleDateString(),
+      paid: selectedPayment !== 'credit',
+      dueDate: selectedPayment === 'credit' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() : null,
     }
 
     try {

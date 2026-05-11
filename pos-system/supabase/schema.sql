@@ -33,12 +33,14 @@ create table if not exists expenses (
 create table if not exists transactions (
   id         text           primary key,   -- e.g. TXN-0001
   time       text           not null,
-  payment    text           not null,
+  payment    text           not null,      -- cash, card, gcash, maya, credit
   subtotal   numeric(10,2)  not null,
   tax        numeric(10,2)  not null,
   total      numeric(10,2)  not null,
   cogs       numeric(10,2)  not null default 0,
   date       text           not null,
+  paid       boolean        default true,  -- false for credit sales until paid
+  due_date   text           default null,  -- e.g. '2026-06-11' for credit sales
   created_at timestamptz    default now()
 );
 

@@ -62,6 +62,9 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
     return Object.values(acc).sort((a, b) => b.rev - a.rev).slice(0, 5)
   }, [transactions])
 
+  // ── Receivables (unpaid credit sales) ────────────────────────────────────
+  const receivables = transactions.filter(t => t.payment === 'credit' && !t.paid).reduce((s, t) => s + t.total, 0)
+
   return (
     <>
       <div className="stats-grid">
@@ -104,6 +107,14 @@ export default function Dashboard({ products, transactions, expenses }: Props) {
           <div className="stat-sub" style={{ color: 'var(--text3)' }}>per transaction today</div>
         </div>
       </div>
+
+      {receivables > 0 && (
+        <div className="stat-card" style={{ marginBottom: 22, background: 'rgba(245,166,35,0.05)', borderColor: 'rgba(245,166,35,0.25)' }}>
+          <div className="stat-label">Receivables <i className="ti ti-clock-exclamation" style={{ color: 'var(--amber)' }} /></div>
+          <div className="stat-value" style={{ color: 'var(--amber)' }}>{ph(receivables)}</div>
+          <div className="stat-sub"><span style={{ color: 'var(--text3)' }}>Unpaid credit sales</span></div>
+        </div>
+      )}
 
       <div className="dash-grid">
         <div className="card">

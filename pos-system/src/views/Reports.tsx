@@ -48,6 +48,10 @@ export default function Reports({ products, transactions, expenses }: Props) {
   const grossMargin = totalRev > 0 ? Math.round(grossProfit / totalRev * 100) : 0
   const netMargin   = totalRev > 0 ? Math.round(netProfit / totalRev * 100) : 0
 
+  // ── Receivables (unpaid credit sales) ────────────────────────────────────
+  const unpaidCredit = transactions.filter(t => t.payment === 'credit' && !t.paid)
+  const receivablesTotal = unpaidCredit.reduce((s, t) => s + t.total, 0)
+
   const plRows = [
     { label: 'Gross Revenue',      val: totalRev,    color: 'var(--text)',   indent: false, divider: false },
     { label: 'Cost of Goods Sold', val: -totalCOGS,  color: 'var(--red)',   indent: true,  divider: false },
@@ -126,6 +130,40 @@ export default function Reports({ products, transactions, expenses }: Props) {
           <div className="stat-sub"><span style={{ color: 'var(--text3)' }}>{netMargin}% net margin</span></div>
         </div>
       </div>
+
+      {receivablesTotal > 0 && (
+        <div style={{ marginBottom: 14 }} className="card">
+          <div className="card-header">
+            <h2><i className="ti ti-clock-exclamation" style={{ marginRight: 6, color: 'var(--amber)' }} />Receivables (Unpaid Credit)</h2>
+            <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 400 }}>{unpaidCredit.length} transactions</span>
+          </div>
+          {unpaidCredit.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)', fontSize: 13 }}>No unpaid credit sales.</div>
+          ) : (
+            <table style={{ width: '100%' }}>
+              <thead>
+                <tr><th>ID</th><th>Date</th><th>Due Date</th><th>Customer Amount</th></tr>
+              </thead>
+              <tbody>
+                {[...unpaidCredit].reverse().map(t => (
+                  <tr key={t.id}>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--accent2)' }}>{t.id}</td>
+                    <td style={{ fontSize: 12, color: 'var(--text2)' }}>{t.date}</td>
+                    <td style={{ fontSize: 12, color: new Date(t.dueDate!) < new Date() ? 'var(--red)' : 'var(--text2)' }}>
+                      {t.dueDate} {new Date(t.dueDate!) < new Date() && <span style={{ color: 'var(--red)' }}>OVERDUE</span>}
+                    </td>
+                    <td style={{ fontFamily: 'var(--mono)', fontWeight: 500, color: 'var(--amber)' }}>₱{t.total.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Total Receivables</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--amber)', fontWeight: 500 }}>{ph(receivablesTotal)}</span>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         {/* P&L Statement */}
