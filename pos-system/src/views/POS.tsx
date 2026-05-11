@@ -60,7 +60,10 @@ export default function POS({ products, cart, cartSub, cartTax, cartTotal, order
               {p.stock <= p.lowStock && p.stock > 0 && <div className="prod-badge">Low</div>}
               <div className="prod-icon">{p.icon}</div>
               <div className="prod-name">{p.name}</div>
-              <div className="prod-price">₱{p.price.toFixed(2)}</div>
+              <div className="prod-price">₱{(selectedPayment === 'credit' && p.creditPrice ? p.creditPrice : p.price).toFixed(2)}</div>
+              {selectedPayment === 'credit' && p.creditPrice && p.creditPrice !== p.price && (
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Regular: ₱{p.price.toFixed(2)}</div>
+              )}
               <div className="prod-stock">{p.stock <= 0 ? 'Out of stock' : `${p.stock} in stock`}</div>
             </div>
           ))}
@@ -92,14 +95,14 @@ export default function POS({ products, cart, cartSub, cartTax, cartTotal, order
                 <div style={{ fontSize: 18 }}>{item.icon}</div>
                 <div style={{ flex: 1 }}>
                   <div className="cart-item-name">{item.name}</div>
-                  <div className="cart-item-sub">₱{item.price.toFixed(2)} each</div>
+                  <div className="cart-item-sub">₱{(selectedPayment === 'credit' && item.creditPrice ? item.creditPrice : item.price).toFixed(2)} each</div>
                 </div>
                 <div className="qty-ctrl">
                   <button className="qty-btn" onClick={() => onChangeQty(item.id, -1)}>−</button>
                   <span className="qty-num">{item.qty}</span>
                   <button className="qty-btn" onClick={() => onChangeQty(item.id, 1)}>+</button>
                 </div>
-                <div className="cart-item-total">₱{(item.price * item.qty).toFixed(2)}</div>
+                <div className="cart-item-total">₱{((selectedPayment === 'credit' && item.creditPrice ? item.creditPrice : item.price) * item.qty).toFixed(2)}</div>
                 <button className="remove-btn" onClick={() => onRemoveFromCart(item.id)}><i className="ti ti-x" /></button>
               </div>
             ))

@@ -61,9 +61,9 @@ export default function App() {
       const existing = prev.find(x => x.id === id)
       if (existing) {
         if (existing.qty >= p.stock) { showToast('Max stock reached', 'ti-alert-triangle'); return prev }
-        return prev.map(x => x.id === id ? { ...x, qty: x.qty + 1 } : x)
+        return prev.map(x => x.id === id ? { ...x, qty: x.qty + 1, creditPrice: p.creditPrice } : x)
       }
-      return [...prev, { id: p.id, name: p.name, price: p.price, qty: 1, icon: p.icon }]
+      return [...prev, { id: p.id, name: p.name, price: p.price, qty: 1, icon: p.icon, creditPrice: p.creditPrice }]
     })
   }
 
@@ -85,7 +85,11 @@ export default function App() {
 
   const checkout = async () => {
     if (!cart.length) return
-    const sub = cart.reduce((s, i) => s + i.price * i.qty, 0)
+    const isCredit = selectedPayment === 'credit'
+    const sub = cart.reduce((s, i) => {
+      const itemPrice = isCredit && i.creditPrice ? i.creditPrice : i.price
+      return s + itemPrice * i.qty
+    }, 0)
     const tax = sub * 0.12
     const total = sub + tax
     let cogs = 0

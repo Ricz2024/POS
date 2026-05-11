@@ -11,7 +11,7 @@ interface Props {
 
 const CATEGORIES = ['Beverages', 'Snacks', 'Household', 'Personal Care', 'Frozen', 'Dairy', 'Canned Goods', 'Bread & Bakery', 'Other']
 
-const emptyForm = { name: '', sku: '', category: 'Beverages', price: '', cost: '', stock: '', lowStock: '10', icon: '🛒' }
+const emptyForm = { name: '', sku: '', category: 'Beverages', price: '', cost: '', stock: '', lowStock: '10', icon: '🛒', creditPrice: '' }
 
 export default function ProductModal({ open, editId, products, onSave, onClose }: Props) {
   const [form, setForm] = useState(emptyForm)
@@ -20,7 +20,7 @@ export default function ProductModal({ open, editId, products, onSave, onClose }
     if (!open) return
     if (editId) {
       const p = products.find(x => x.id === editId)
-      if (p) setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), lowStock: String(p.lowStock), icon: p.icon })
+      if (p) setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), lowStock: String(p.lowStock), icon: p.icon, creditPrice: String(p.creditPrice || '') })
     } else {
       setForm(emptyForm)
     }
@@ -37,7 +37,8 @@ export default function ProductModal({ open, editId, products, onSave, onClose }
       alert('Please fill all required fields')
       return
     }
-    onSave({ name: form.name, sku: form.sku, category: form.category, price, cost, stock, lowStock, icon: form.icon || '🛒' }, editId)
+    const creditPrice = form.creditPrice ? parseFloat(form.creditPrice) : undefined
+    onSave({ name: form.name, sku: form.sku, category: form.category, price, cost, stock, lowStock, icon: form.icon || '🛒', creditPrice }, editId)
   }
 
   return (
@@ -68,6 +69,12 @@ export default function ProductModal({ open, editId, products, onSave, onClose }
           <div className="form-group">
             <label className="form-label">Cost Price (₱)</label>
             <input type="number" className="form-input" placeholder="0.00" step="0.01" value={form.cost} onChange={e => set('cost', e.target.value)} />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Credit Price (₱)</label>
+            <input type="number" className="form-input" placeholder="Leave empty if same as selling price" step="0.01" value={form.creditPrice} onChange={e => set('creditPrice', e.target.value)} />
           </div>
         </div>
         <div className="form-row">

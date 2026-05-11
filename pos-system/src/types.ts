@@ -8,6 +8,7 @@ export interface Product {
   stock: number;
   lowStock: number;
   icon: string;
+    creditPrice?: number;
 }
 
 export interface CartItem {
@@ -16,6 +17,7 @@ export interface CartItem {
   price: number;
   qty: number;
   icon: string;
+  creditPrice?: number;
 }
 
 export interface Transaction {

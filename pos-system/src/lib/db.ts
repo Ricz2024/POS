@@ -14,6 +14,7 @@ function mapProduct(row: Record<string, unknown>): Product {
     stock:    row.stock as number,
     lowStock: row.low_stock as number,
     icon:     row.icon as string,
+      creditPrice: row.credit_price ? Number(row.credit_price) : undefined,
   }
 }
 
@@ -74,7 +75,7 @@ export async function fetchProducts(): Promise<Product[]> {
 export async function insertProduct(p: Omit<Product, 'id'>): Promise<Product> {
   const { data, error } = await supabase
     .from('products')
-    .insert({ name: p.name, sku: p.sku, category: p.category, price: p.price, cost: p.cost, stock: p.stock, low_stock: p.lowStock, icon: p.icon })
+    .insert({ name: p.name, sku: p.sku, category: p.category, price: p.price, cost: p.cost, stock: p.stock, low_stock: p.lowStock, icon: p.icon, credit_price: p.creditPrice })
     .select()
     .single()
   if (error) throw error
@@ -91,6 +92,7 @@ export async function updateProduct(id: number, p: Partial<Omit<Product, 'id'>>)
   if (p.stock     !== undefined) patch.stock     = p.stock
   if (p.lowStock  !== undefined) patch.low_stock = p.lowStock
   if (p.icon      !== undefined) patch.icon      = p.icon
+  if (p.creditPrice !== undefined) patch.credit_price = p.creditPrice
 
   const { data, error } = await supabase
     .from('products')
